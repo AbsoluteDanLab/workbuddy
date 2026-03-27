@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美伊战事研究报告 V3</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.7;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            padding: 0 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            height: 56px;
+        }
+        .top-nav h1 { color: #fff; font-size: 18px; font-weight: 600; }
+        .top-nav-right { margin-left: auto; color: #999; font-size: 13px; }
+
+        /* 悬浮导航 */
+        .floating-nav {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 12px 0;
+            z-index: 999;
+            display: none;
+        }
+        .floating-nav.show { display: block; }
+        .floating-nav a {
+            display: block;
+            padding: 10px 20px;
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .floating-nav a:hover, .floating-nav a.active {
+            background: #f0f0f0;
+            color: #1a1a1a;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 70px 20px 40px;
+        }
+
+        /* 标题区 */
+        .page-header {
+            background: #fff;
+            padding: 40px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .page-header h1 { font-size: 28px; color: #1a1a1a; margin-bottom: 12px; }
+        .page-header .subtitle { color: #666; font-size: 15px; }
+        .page-header .tags { margin-top: 16px; }
+        .page-header .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #e8e8e8;
+            color: #666;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 4px;
+        }
+        .page-header .tag.red { background: #ffe8e8; color: #d00; }
+        .page-header .tag.green { background: #e8f5e8; color: #2a2; }
+        .page-header .tag.orange { background: #fff3e0; color: #e65100; }
+
+        /* 内容卡片 */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 20px;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #eee;
+        }
+        .card h3 { font-size: 16px; color: #333; margin: 20px 0 12px; }
+
+        /* 数据卡片 */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .num { font-size: 28px; font-weight: 700; color: #1a1a1a; }
+        .stat-card .num.red { color: #d00; }
+        .stat-card .num.green { color: #2a2; }
+        .stat-card .num.orange { color: #e65100; }
+        .stat-card .label { font-size: 13px; color: #666; margin-top: 4px; }
+
+        /* 图表容器 */
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        /* 表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        th {
+            background: #f5f5f5;
+            color: #333;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover td { background: #fafafa; }
+
+        /* 时间线 */
+        .timeline { position: relative; padding-left: 24px; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ddd;
+        }
+        .timeline-item { position: relative; margin-bottom: 24px; }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 6px;
+            width: 10px;
+            height: 10px;
+            background: #1a1a1a;
+            border-radius: 50%;
+        }
+        .timeline-item .date { font-size: 13px; color: #999; margin-bottom: 4px; }
+        .timeline-item .title { font-size: 15px; color: #1a1a1a; font-weight: 600; margin-bottom: 6px; }
+        .timeline-item .desc { font-size: 14px; color: #555; }
+
+        /* 涨跌指示 */
+        .up { color: #d00; }
+        .down { color: #2a2; }
+
+        /* 流程图 */
+        .flow-diagram {
+            background: #f8f8f8;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            font-size: 13px;
+        }
+        .flow-diagram .step { display: flex; align-items: center; margin: 8px 0; }
+        .flow-diagram .box {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            flex: 1;
+            text-align: center;
+        }
+        .flow-diagram .arrow { color: #999; padding: 0 8px; }
+
+        /* 注意事项 */
+        .notice {
+            background: #fffbe6;
+            border-left: 4px solid #faad14;
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .notice strong { color: #d48806; }
+
+        /* 页脚 */
+        .footer { text-align: center; padding: 30px; color: #999; font-size: 13px; }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .floating-nav { display: none !important; }
+            .container { padding: 70px 16px 30px; }
+            .card { padding: 20px; border-radius: 0; margin-left: -16px; margin-right: -16px; margin-bottom: 12px; }
+            .page-header { padding: 30px 20px; border-radius: 0; margin-left: -16px; margin-right: -16px; }
+            .chart-row { grid-template-columns: 1fr; }
+            .chart-container { height: 250px; }
+            table { font-size: 12px; }
+            th, td { padding: 8px 6px; }
+        }
+
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="top-nav">
+        <h1>美伊战事研究报告</h1>
+        <span class="top-nav-right">2026.03.27</span>
+    </nav>
+
+    <!-- 悬浮导航 -->
+    <nav class="floating-nav" id="floatingNav">
+        <a href="#overview">总览</a>
+        <a href="#keydata">关键数据</a>
+        <a href="#timeline">时间线</a>
+        <a href="#charts">数据图表</a>
+        <a href="#stocks">A股数据</a>
+        <a href="#analysis">传导机制</a>
+        <a href="#conclusion">结论</a>
+    </nav>
+
+    <div class="container">
+        <!-- 总览 -->
+        <section class="page-header" id="overview">
+            <h1>美伊战事研究报告 V3</h1>
+            <p class="subtitle">美以联合"史诗怒火行动"对A股市场影响分析</p>
+            <div class="tags">
+                <span class="tag">数据截至 2026.03.27</span>
+                <span class="tag red">冲突第28天</span>
+                <span class="tag green">油价 +82%</span>
+                <span class="tag orange">谈判延期至4月6日</span>
+            </div>
+        </section>
+
+        <!-- 关键数据 -->
+        <section class="card" id="keydata">
+            <h2>关键数据</h2>
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="num red">28天</div>
+                    <div class="label">战争持续天数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num red">120</div>
+                    <div class="label">布伦特油价(美元/桶)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num red">+82%</div>
+                    <div class="label">油价涨幅</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num orange">封锁中</div>
+                    <div class="label">霍尔木兹海峡</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num red">3889</div>
+                    <div class="label">上证指数(3月26日)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num red">1900+</div>
+                    <div class="label">伊朗死亡人数</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 时间线 -->
+        <section class="card" id="timeline">
+            <h2>战事时间线（2026年3月）</h2>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="date">2月28日</div>
+                    <div class="title">"史诗怒火"行动启动</div>
+                    <div class="desc">美以联合对伊朗发动大规模军事打击</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月3日</div>
+                    <div class="title">霍尔木兹海峡骤降95%</div>
+                    <div class="desc">仅1艘油轮通过，全球能源供应受严重冲击</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月11日</div>
+                    <div class="title">IEA释放战略石油储备</div>
+                    <div class="desc">32个成员国一致同意释放4亿桶储备</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月18日</div>
+                    <div class="title">南帕斯天然气田遭袭</div>
+                    <div class="desc">世界最大气田被炸，油价飙升至108美元/桶</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月19日</div>
+                    <div class="title">4000点保卫战</div>
+                    <div class="desc">上证指数-1.39%，险守4000点，市场恐慌情绪达到顶峰</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月21日</div>
+                    <div class="title">特朗普发出最后通牒</div>
+                    <div class="desc">要求48小时内重开霍尔木兹海峡，威胁打击发电厂</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月24日</div>
+                    <div class="title">特朗普宣布"战争已胜利"</div>
+                    <div class="desc">称谈判进行中，但伊朗继续发射导弹</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月25-26日</div>
+                    <div class="title">伊朗提出五项反提议</div>
+                    <div class="desc">拒绝停火，要求霍尔木兹主权、战争赔偿</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">3月27日</div>
+                    <div class="title">谈判期限延长至4月6日</div>
+                    <div class="desc">特朗普称谈判"进展顺利"，但标普500下跌1.7%</div>
+                </div>
+            </div>
+
+            <div class="notice">
+                <strong>最新伤亡数据（截至3月27日）：</strong>伊朗1900+人、黎巴嫩近1100人、美军13人、以色列18人
+            </div>
+        </section>
+
+        <!-- 数据图表 -->
+        <section class="card" id="charts">
+            <h2>数据图表</h2>
+
+            <!-- 油价走势图 -->
+            <h3>布伦特原油价格走势（3月1日-26日）</h3>
+            <div id="oilChart" class="chart-container"></div>
+
+            <!-- 上证指数K线图 -->
+            <h3>上证指数K线图（3月19日-26日）</h3>
+            <div id="klineChart" class="chart-container"></div>
+
+            <!-- 板块对比 -->
+            <div class="chart-row">
+                <div>
+                    <h3>A股板块涨跌对比</h3>
+                    <div id="sectorChart" style="height: 280px;"></div>
+                </div>
+                <div>
+                    <h3>市场情绪（3月19日）</h3>
+                    <div id="emotionChart" style="height: 280px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- A股数据 -->
+        <section class="card" id="stocks">
+            <h2>A股市场数据</h2>
+
+            <h3>主要指数表现</h3>
+            <table>
+                <tr>
+                    <th>日期</th>
+                    <th>上证指数</th>
+                    <th>深证成指</th>
+                    <th>创业板指</th>
+                </tr>
+                <tr>
+                    <td>3月19日</td>
+                    <td class="up">4006.55 (-1.39%)</td>
+                    <td>13901.57</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td>3月25日</td>
+                    <td class="down">3931.84 (+1.30%)</td>
+                    <td class="down">13801.00 (+1.95%)</td>
+                    <td class="down">3316.97 (+2.01%)</td>
+                </tr>
+                <tr>
+                    <td>3月26日</td>
+                    <td class="up">3889.08 (-1.09%)</td>
+                    <td class="up">13606.44 (-1.41%)</td>
+                    <td class="up">3272.49 (-1.34%)</td>
+                </tr>
+            </table>
+
+            <h3>板块涨跌</h3>
+            <table>
+                <tr>
+                    <th>类别</th>
+                    <th>板块/个股</th>
+                    <th>涨跌幅</th>
+                </tr>
+                <tr>
+                    <td rowspan="3" style="background:#f5f5f5;font-weight:600;">受益板块</td>
+                    <td>蓝焰控股（油气）</td>
+                    <td class="down">涨停</td>
+                </tr>
+                <tr>
+                    <td>神剑股份、西部材料（军工）</td>
+                    <td class="down">涨停</td>
+                </tr>
+                <tr>
+                    <td>中航沈飞（相对抗跌）</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td rowspan="3" style="background:#f5f5f5;font-weight:600;">受损板块</td>
+                    <td>AI算力/半导体/光伏</td>
+                    <td class="up">集体回调</td>
+                </tr>
+                <tr>
+                    <td>航空运输</td>
+                    <td class="up">燃油成本上升</td>
+                </tr>
+                <tr>
+                    <td>保险/券商</td>
+                    <td class="up">拖累指数</td>
+                </tr>
+            </table>
+
+            <h3>市场情绪指标</h3>
+            <table>
+                <tr>
+                    <th>日期</th>
+                    <th>红盘家数</th>
+                    <th>绿盘家数</th>
+                    <th>情绪</th>
+                </tr>
+                <tr>
+                    <td>3月10日</td>
+                    <td class="down">4,536</td>
+                    <td class="up">850</td>
+                    <td style="color:#2a2;">乐观</td>
+                </tr>
+                <tr>
+                    <td>3月19日</td>
+                    <td class="up">505</td>
+                    <td class="down">4,952</td>
+                    <td style="color:#d00;">恐慌</td>
+                </tr>
+            </table>
+            <p style="font-size:13px;color:#666;margin-top:8px;">统计周期：3月1日-20日，共17个交易日，绿盘多于红盘天数12天</p>
+        </section>
+
+        <!-- 传导机制 -->
+        <section class="card" id="analysis">
+            <h2>五大传导机制</h2>
+
+            <div class="flow-diagram">
+                <div class="step">
+                    <div class="box">美伊冲突升级</div>
+                </div>
+                <div class="step">
+                    <div class="arrow">↓</div>
+                </div>
+                <div class="step">
+                    <div class="box">能源路径</div>
+                    <div class="arrow">→</div>
+                    <div class="box">情绪路径</div>
+                    <div class="arrow">→</div>
+                    <div class="box">供应链路径</div>
+                </div>
+                <div class="step">
+                    <div class="arrow">↓</div>
+                </div>
+                <div class="step">
+                    <div class="box">通胀路径</div>
+                    <div class="arrow">→</div>
+                    <div class="box">政策路径</div>
+                </div>
+                <div class="step">
+                    <div class="arrow">↓</div>
+                </div>
+                <div class="step">
+                    <div class="box">A股市场反应</div>
+                </div>
+            </div>
+
+            <h3>能源路径（最直接）</h3>
+            <p>霍尔木兹海峡每日运输约2000万桶原油，占全球五分之一。冲突后油轮通行量骤降95%，布伦特原油从66美元飙升至120美元/桶（+82%）。</p>
+
+            <h3>情绪路径（最快速）</h3>
+            <p>地缘冲突引发避险情绪，风险资产遭抛售。3月19日"4000点保卫战"反映市场恐慌情绪达到顶峰。</p>
+
+            <h3>供应链路径</h3>
+            <p>卡塔尔氦气设施受损影响半导体产业；尿素、氨等化肥原料上涨约30%。</p>
+
+            <h3>通胀路径</h3>
+            <p>油价上涨→物流成本上升→消费品价格上涨，中国面临输入性通胀压力。</p>
+        </section>
+
+        <!-- 结论 -->
+        <section class="card" id="conclusion">
+            <h2>核心结论</h2>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="num green">能源</div>
+                    <div class="label">最大受益板块</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num green">军工</div>
+                    <div class="label">明显受益</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num red">科技</div>
+                    <div class="label">阶段性承压</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num red">航空</div>
+                    <div class="label">受损严重</div>
+                </div>
+            </div>
+
+            <h3>投资建议</h3>
+            <table>
+                <tr>
+                    <th>板块</th>
+                    <th>建议</th>
+                </tr>
+                <tr>
+                    <td>能源油气</td>
+                    <td class="down">受益油价上涨，关注中国石油、中国石化</td>
+                </tr>
+                <tr>
+                    <td>军工</td>
+                    <td class="down">地缘风险受益，关注中航沈飞、神剑股份</td>
+                </tr>
+                <tr>
+                    <td>黄金</td>
+                    <td class="down">避险需求支撑</td>
+                </tr>
+                <tr>
+                    <td>新能源</td>
+                    <td class="down">长期受益于能源转型加速</td>
+                </tr>
+                <tr>
+                    <td>AI/半导体</td>
+                    <td class="up">短期承压，注意风险</td>
+                </tr>
+            </table>
+
+            <div class="notice">
+                <strong>风险提示：</strong>若霍尔木兹海峡长期封锁，油价可能突破150美元/桶，通胀冲击将大幅加剧。A股可能面临更大调整压力。
+            </div>
+        </section>
+
+        <!-- 来源 -->
+        <section class="card">
+            <h2>信息来源</h2>
+            <p style="font-size:14px;color:#666;">
+                AP News、CNN、USA Today、Gulf News、LiveMint、ISW研究所、新华财经、东方财富、证券市场周刊、世界经济论坛
+            </p>
+        </section>
+
+        <div class="footer">
+            <p>整理：熊大（新闻）+ 熊二（A股）| 研究团队：a-share-research</p>
+            <p>2026年3月27日</p>
+        </div>
+    </div>
+
+    <script>
+        // 悬浮导航显示控制
+        const floatingNav = document.getElementById('floatingNav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                floatingNav.classList.add('show');
+            } else {
+                floatingNav.classList.remove('show');
+            }
+        });
+
+        // 当前导航高亮
+        const sections = document.querySelectorAll('section[id], .page-header[id]');
+        const navLinks = document.querySelectorAll('.floating-nav a');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (window.scrollY >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // ========== ECharts 图表 ==========
+
+        // 1. 油价走势图
+        const oilChart = echarts.init(document.getElementById('oilChart'));
+        oilChart.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: ['3/1', '3/3', '3/5', '3/7', '3/9', '3/11', '3/13', '3/15', '3/17', '3/18', '3/19', '3/21', '3/23', '3/25', '3/26'],
+                axisLabel: { fontSize: 11 }
+            },
+            yAxis: {
+                type: 'value',
+                name: '美元/桶',
+                min: 60,
+                max: 130,
+                axisLabel: { fontSize: 11 }
+            },
+            series: [{
+                name: '布伦特原油',
+                type: 'line',
+                smooth: true,
+                data: [66, 72, 78, 82, 88, 88, 85, 90, 95, 108, 105, 100, 102, 115, 120],
+                areaStyle: {
+                    color: {
+                        type: 'linear',
+                        x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [
+                            { offset: 0, color: 'rgba(220, 0, 0, 0.3)' },
+                            { offset: 1, color: 'rgba(220, 0, 0, 0.05)' }
+                        ]
+                    }
+                },
+                lineStyle: { color: '#d00', width: 2 },
+                itemStyle: { color: '#d00' },
+                markPoint: {
+                    data: [
+                        { type: 'max', name: '最高价' },
+                        { type: 'min', name: '最低价' }
+                    ]
+                },
+                markLine: {
+                    data: [{ name: '冲突前均价', yAxis: 66 }],
+                    lineStyle: { color: '#2a2', type: 'dashed' }
+                }
+            }]
+        });
+
+        // 2. 上证指数K线图
+        const klineChart = echarts.init(document.getElementById('klineChart'));
+        klineChart.setOption({
+            tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: ['3月19日', '3月23日', '3月25日', '3月26日'],
+                axisLabel: { fontSize: 11 }
+            },
+            yAxis: {
+                type: 'value',
+                name: '上证指数',
+                min: 3850,
+                max: 4150,
+                axisLabel: { fontSize: 11 }
+            },
+            series: [{
+                name: 'K线',
+                type: 'candlestick',
+                data: [
+                    [4100, 4006, 3990, 4120],  // [open, close, low, high]
+                    [3950, 4010, 3930, 4030],
+                    [3880, 3931, 3870, 3960],
+                    [3950, 3889, 3875, 3960]
+                ],
+                itemStyle: {
+                    color: '#2a2',      // 涨 - 绿色
+                    color0: '#d00',     // 跌 - 红色
+                    borderColor: '#2a2',
+                    borderColor0: '#d00'
+                }
+            }]
+        });
+
+        // 3. 板块涨跌柱状图
+        const sectorChart = echarts.init(document.getElementById('sectorChart'));
+        sectorChart.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: ['能源油气', '军工', '黄金', '半导体', 'AI算力', '航空'],
+                axisLabel: { fontSize: 11, rotate: 15 }
+            },
+            yAxis: {
+                type: 'value',
+                name: '涨跌幅%',
+                axisLabel: { fontSize: 11 }
+            },
+            series: [{
+                name: '涨跌幅',
+                type: 'bar',
+                data: [
+                    { value: 8, itemStyle: { color: '#2a2' } },
+                    { value: 5, itemStyle: { color: '#2a2' } },
+                    { value: 3, itemStyle: { color: '#2a2' } },
+                    { value: -4, itemStyle: { color: '#d00' } },
+                    { value: -6, itemStyle: { color: '#d00' } },
+                    { value: -5, itemStyle: { color: '#d00' } }
+                ],
+                label: {
+                    show: true,
+                    position: 'top',
+                    formatter: '{c}%',
+                    fontSize: 11
+                }
+            }]
+        });
+
+        // 4. 市场情绪饼图
+        const emotionChart = echarts.init(document.getElementById('emotionChart'));
+        emotionChart.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c}家 ({d}%)' },
+            legend: {
+                orient: 'vertical',
+                right: '5%',
+                top: 'center',
+                textStyle: { fontSize: 12 }
+            },
+            series: [{
+                name: '市场情绪',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['35%', '50%'],
+                avoidLabelOverlap: false,
+                label: { show: false },
+                emphasis: {
+                    label: { show: true, fontSize: 14, fontWeight: 'bold' }
+                },
+                data: [
+                    { value: 505, name: '红盘(乐观)', itemStyle: { color: '#2a2' } },
+                    { value: 4952, name: '绿盘(恐慌)', itemStyle: { color: '#d00' } }
+                ]
+            }]
+        });
+
+        // 响应式
+        window.addEventListener('resize', function() {
+            oilChart.resize();
+            klineChart.resize();
+            sectorChart.resize();
+            emotionChart.resize();
+        });
+    </script>
+</body>
+</html>
